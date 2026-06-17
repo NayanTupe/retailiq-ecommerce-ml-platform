@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.routes.churn_routes import router as churn_router
+
 
 app = FastAPI(
     title="RetailIQ API",
@@ -16,6 +18,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(churn_router)
 
 
 @app.get("/")
