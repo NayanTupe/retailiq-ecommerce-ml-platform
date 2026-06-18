@@ -2,7 +2,7 @@
 
 RetailIQ is an industry-style machine learning project built to analyze e-commerce customer behavior and predict customer churn risk.
 
-The project includes a complete data science workflow: data loading, data cleaning, feature engineering, churn label creation, leakage-safe model training, model evaluation, and single-customer churn prediction.
+The project includes a complete data science workflow: data loading, data cleaning, feature engineering, churn label creation, leakage-safe model training, model evaluation, customer segmentation, FastAPI backend, analytics API endpoints, and single-customer churn prediction.
 
 ---
 
@@ -68,7 +68,8 @@ retailiq-ecommerce-ml-platform/
 │   │   └── cleaned_customer_data.csv
 │   │
 │   └── processed/
-│       └── final_features.csv
+│       ├── final_features.csv
+│       └── customer_segments.csv
 │
 ├── notebooks/
 │   ├── 01_data_understanding.ipynb
@@ -101,10 +102,14 @@ retailiq-ecommerce-ml-platform/
 │       └── charts.py
 │
 ├── models/
-│   └── churn_model.pkl
+│   ├── churn_model.pkl
+│   ├── segmentation_model.pkl
+│   └── segmentation_scaler.pkl
 │
 ├── reports/
 │   ├── model_performance_report.md
+│   ├── customer_segmentation_report.md
+│   ├── api_documentation.md
 │   └── figures/
 │
 ├── dashboard/
@@ -114,8 +119,12 @@ retailiq-ecommerce-ml-platform/
 ├── api/
 │   ├── main.py
 │   ├── routes/
+│   │   ├── churn_routes.py
+│   │   └── dashboard_routes.py
 │   ├── schemas/
+│   │   └── prediction_schema.py
 │   └── services/
+│       └── prediction_service.py
 │
 ├── database/
 │   ├── schema.sql
@@ -156,9 +165,15 @@ Leakage-Safe Model Training
     ↓
 Model Evaluation
     ↓
+Customer Segmentation
+    ↓
 Single Customer Prediction
     ↓
-Future Dashboard / API / Website
+FastAPI Backend
+    ↓
+Analytics API Endpoints
+    ↓
+Future React Dashboard / Website
 ```
 
 ---
@@ -303,6 +318,143 @@ Recommendation: Offer retention discount, loyalty reward, or personal follow-up.
 
 ---
 
+## Customer Segmentation
+
+The project includes a customer segmentation pipeline using K-Means clustering.
+
+Segmentation script:
+
+```text
+src/models/train_segmentation_model.py
+```
+
+Segments created:
+
+* High Value Customers
+* At Risk Customers
+* Low Engagement Customers
+* Satisfied Regular Customers
+
+Silhouette Score:
+
+```text
+0.2898
+```
+
+Segment distribution:
+
+| Segment Name                | Customers |
+| --------------------------- | --------: |
+| Satisfied Regular Customers |    47,380 |
+| High Value Customers        |    21,323 |
+| At Risk Customers           |    20,277 |
+| Low Engagement Customers    |    11,020 |
+
+Business purpose:
+
+* Identify high-value customers
+* Detect at-risk customers
+* Plan retention campaigns
+* Create owner-level dashboard insights
+* Support personalized marketing actions
+
+---
+
+## FastAPI Backend
+
+This project includes a FastAPI backend for churn prediction and dashboard analytics.
+
+### Run API Locally
+
+```bash
+source venv/bin/activate
+python -m uvicorn api.main:app --reload
+```
+
+Local API URL:
+
+```text
+http://127.0.0.1:8000
+```
+
+Swagger Documentation:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+
+## API Endpoints
+
+| Method | Endpoint                         | Purpose                       |
+| ------ | -------------------------------- | ----------------------------- |
+| GET    | `/`                              | API root status               |
+| GET    | `/health`                        | Health check                  |
+| POST   | `/predict/churn`                 | Predict customer churn risk   |
+| GET    | `/analytics/summary`             | Dashboard KPI summary         |
+| GET    | `/analytics/segments`            | Customer segment analytics    |
+| GET    | `/analytics/churn-by-membership` | Churn rate by membership type |
+
+---
+
+## Sample Churn Prediction Request
+
+```json
+{
+  "gender": "Female",
+  "age": 32,
+  "city": "Miami",
+  "membership_type": "Bronze",
+  "total_spend": 166.56,
+  "items_purchased": 2,
+  "average_rating": 2.5,
+  "discount_applied": true,
+  "avg_spend_per_item": 83.28,
+  "is_high_value_customer": 0,
+  "is_frequent_buyer": 0,
+  "low_rating_flag": 1,
+  "discount_used_flag": 1
+}
+```
+
+---
+
+## Sample Churn Prediction Response
+
+```json
+{
+  "churn_prediction": 1,
+  "churn_probability": 0.8414,
+  "risk_level": "High Risk",
+  "recommendation": "Offer retention discount, loyalty reward, or personal follow-up."
+}
+```
+
+---
+
+## Sample Dashboard Summary Response
+
+Endpoint:
+
+```text
+GET /analytics/summary
+```
+
+Sample response:
+
+```json
+{
+  "total_customers": 100000,
+  "total_revenue": 32224102.09,
+  "average_spend": 322.24,
+  "churn_rate": 60.21,
+  "average_rating": 3.56
+}
+```
+
+---
+
 ## Business Use Cases
 
 This project can help an e-commerce business to:
@@ -313,7 +465,9 @@ This project can help an e-commerce business to:
 * Improve customer lifetime value
 * Monitor customer satisfaction
 * Understand customer behavior
+* Segment customers for targeted marketing
 * Build business dashboards for owners and managers
+* Integrate ML predictions with a future React dashboard
 
 ---
 
@@ -386,6 +540,24 @@ python src/models/train_churn_model.py
 python src/models/predict.py
 ```
 
+### 10. Train Customer Segmentation Model
+
+```bash
+python src/models/train_segmentation_model.py
+```
+
+### 11. Run FastAPI Backend
+
+```bash
+python -m uvicorn api.main:app --reload
+```
+
+Open Swagger docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
 ---
 
 ## Current Status
@@ -401,16 +573,24 @@ Completed:
 * Leakage-safe churn model training
 * Model evaluation
 * Single customer churn prediction
+* Customer segmentation model
 * Model performance report
+* Customer segmentation report
+* FastAPI backend setup
+* Churn prediction API endpoint
+* Dashboard analytics API endpoints
+* API documentation report
+* Project roadmap
 * GitHub version control setup
 
 Upcoming:
 
-* Customer segmentation
-* Streamlit dashboard
-* FastAPI prediction API
-* React / Next.js website
+* Basic automated tests
+* Optional Streamlit dashboard demo
+* React / Next.js dashboard
 * Deployment
+* Docker setup
+* CI/CD pipeline
 * Business insights dashboard
 
 ---
@@ -422,9 +602,12 @@ Upcoming:
 * NumPy
 * Scikit-learn
 * Random Forest Classifier
+* K-Means Clustering
 * Joblib
-* Streamlit
 * FastAPI
+* Uvicorn
+* Pydantic
+* Streamlit
 * Git
 * GitHub
 
@@ -434,14 +617,46 @@ Upcoming:
 
 * Add XGBoost and LightGBM models
 * Add hyperparameter tuning
-* Add customer segmentation using K-Means
-* Add Streamlit dashboard
-* Add REST API using FastAPI
+* Add advanced customer segmentation
+* Add Streamlit dashboard demo
 * Add React / Next.js frontend
 * Add Docker-based deployment
 * Add MLflow experiment tracking
 * Add automated testing
 * Add CI/CD pipeline
+* Add authentication for production use
+* Deploy backend and frontend
+
+---
+
+## Reports
+
+Detailed project reports are available in the `reports/` folder:
+
+```text
+reports/model_performance_report.md
+reports/customer_segmentation_report.md
+reports/api_documentation.md
+```
+
+---
+
+## Notes
+
+Generated datasets and model files are not pushed to GitHub because they are ignored using `.gitignore`.
+
+Ignored folders:
+
+```text
+data/raw/
+data/interim/
+data/processed/
+models/
+logs/
+venv/
+```
+
+To reproduce the project locally, place the dataset in `data/raw/`, then run the data pipeline and model training scripts.
 
 ---
 
