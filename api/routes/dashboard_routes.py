@@ -2,17 +2,21 @@ import pandas as pd
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
-
 router = APIRouter(
     prefix="/analytics",
     tags=["Dashboard Analytics"]
 )
 
-
+# -----------------------------
+# DATA PATHS
+# -----------------------------
 SEGMENTED_DATA_PATH = Path("data/processed/customer_segments.csv")
 FEATURE_DATA_PATH = Path("data/processed/final_features.csv")
 
 
+# -----------------------------
+# LOAD DATA FUNCTION
+# -----------------------------
 def load_dashboard_data() -> pd.DataFrame:
     if SEGMENTED_DATA_PATH.exists():
         return pd.read_csv(SEGMENTED_DATA_PATH)
@@ -25,6 +29,9 @@ def load_dashboard_data() -> pd.DataFrame:
     )
 
 
+# -----------------------------
+# 1. SUMMARY API
+# -----------------------------
 @router.get("/summary")
 def get_summary():
     try:
@@ -42,6 +49,9 @@ def get_summary():
         raise HTTPException(status_code=500, detail=str(error))
 
 
+# -----------------------------
+# 2. SEGMENTS API
+# -----------------------------
 @router.get("/segments")
 def get_segments():
     try:
@@ -73,6 +83,9 @@ def get_segments():
         raise HTTPException(status_code=500, detail=str(error))
 
 
+# -----------------------------
+# 3. CHURN BY MEMBERSHIP API
+# -----------------------------
 @router.get("/churn-by-membership")
 def get_churn_by_membership():
     try:
