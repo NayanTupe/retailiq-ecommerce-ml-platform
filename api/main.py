@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routes.churn_routes import router as churn_router
+from api.routes.dashboard_routes import router as dashboard_router
 
 
 app = FastAPI(
@@ -21,6 +22,7 @@ app.add_middleware(
 
 
 app.include_router(churn_router)
+app.include_router(dashboard_router)
 
 
 @app.get("/")
