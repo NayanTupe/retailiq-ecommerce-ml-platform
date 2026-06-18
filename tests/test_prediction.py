@@ -38,3 +38,4 @@ def test_get_recommendation_low_risk():
     result = get_recommendation("Low Risk")
 
     assert result == "Maintain regular communication and loyalty benefits."
+    

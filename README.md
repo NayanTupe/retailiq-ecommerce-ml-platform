@@ -660,6 +660,32 @@ To reproduce the project locally, place the dataset in `data/raw/`, then run the
 
 ---
 
+---
+
+## Testing
+
+This project includes basic unit tests for core logic.
+
+Test files:
+
+```text
+tests/test_data_cleaning.py
+tests/test_feature_engineering.py
+tests/test_prediction.py
+
+
+python -m pytest tests/
+
+The tests validate:
+
+Data cleaning logic
+Duplicate removal
+Numeric value validation
+Churn label creation
+Feature engineering logic
+Risk level mapping
+Business recommendation logic
+
 ## Author
 
 Nayan Tupe
