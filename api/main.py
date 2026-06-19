@@ -9,12 +9,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# ---------------- CORS (PRODUCTION SAFE) ----------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "http://127.0.0.1:5173",
         "https://retailiq-dashboard-frontend.vercel.app"
     ],
     allow_credentials=True,
@@ -22,11 +20,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------------- ROUTES ----------------
 app.include_router(prediction_router)
 app.include_router(dashboard_router)
 
-# ---------------- ROOT ----------------
 @app.get("/")
 def home():
     return {"message": "RetailIQ API Running"}
