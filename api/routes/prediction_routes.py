@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import joblib
 from fastapi import APIRouter
@@ -6,13 +7,17 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/predict", tags=["Prediction"])
 
 # =========================
-# LOAD MODEL
+# SAFE MODEL LOADING (RENDER FIX)
 # =========================
-model = joblib.load("models/churn_model.pkl")
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE_DIR, "models", "churn_model.pkl")
+
+model = joblib.load(MODEL_PATH)
 
 
 # =========================
-# INPUT SCHEMA (ONLY RAW INPUTS)
+# INPUT SCHEMA
 # =========================
 class CustomerInput(BaseModel):
     age: int
@@ -31,7 +36,7 @@ def predict_churn(data: CustomerInput):
     df = pd.DataFrame([data.dict()])
 
     # =========================
-    # SAFE FEATURE ENGINEERING
+    # FEATURE ENGINEERING (SAFE)
     # =========================
 
     df["avg_spend_per_item"] = df["total_spend"] / max(df["items_purchased"].values[0], 1)
@@ -44,16 +49,15 @@ def predict_churn(data: CustomerInput):
 
     df["discount_used_flag"] = 1
 
-    # 🔥 IMPORTANT FIX (from training requirement)
     df["discount_applied"] = 1
 
-    # categorical defaults
+    # categorical defaults (must match training)
     df["gender"] = "Male"
     df["city"] = "Unknown"
     df["membership_type"] = "Gold"
 
     # =========================
-    # FINAL COLUMN ORDER (MATCH TRAINING)
+    # FINAL COLUMN ORDER
     # =========================
     expected_cols = [
         "age",
@@ -74,7 +78,7 @@ def predict_churn(data: CustomerInput):
     df = df[expected_cols]
 
     # =========================
-    # PREDICTION (SAFE)
+    # PREDICTION
     # =========================
     try:
         prediction = model.predict(df)[0]
