@@ -7,13 +7,19 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/predict", tags=["Prediction"])
 
 # =========================
-# SAFE MODEL LOADING (RENDER FIX)
+# SAFE MODEL LOADING (RENDER READY)
 # =========================
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, "models", "churn_model.pkl")
 
-model = joblib.load(MODEL_PATH)
+model = None
+
+try:
+    model = joblib.load(MODEL_PATH)
+    print("✅ Model loaded successfully")
+except Exception as e:
+    print("❌ Model loading failed:", str(e))
 
 
 # =========================
@@ -32,26 +38,30 @@ class CustomerInput(BaseModel):
 @router.post("/churn")
 def predict_churn(data: CustomerInput):
 
+    # Safety check
+    if model is None:
+        return {
+            "error": "Model not loaded",
+            "message": "Check model file path or deployment"
+        }
+
     # Convert input to DataFrame
     df = pd.DataFrame([data.dict()])
 
     # =========================
-    # FEATURE ENGINEERING (SAFE)
+    # FEATURE ENGINEERING
     # =========================
 
-    df["avg_spend_per_item"] = df["total_spend"] / max(df["items_purchased"].values[0], 1)
+    items = max(data.items_purchased, 1)
 
-    df["is_high_value_customer"] = (df["total_spend"] > 10000).astype(int)
-
-    df["is_frequent_buyer"] = (df["items_purchased"] > 5).astype(int)
-
-    df["low_rating_flag"] = (df["average_rating"] < 3).astype(int)
-
+    df["avg_spend_per_item"] = data.total_spend / items
+    df["is_high_value_customer"] = int(data.total_spend > 10000)
+    df["is_frequent_buyer"] = int(data.items_purchased > 5)
+    df["low_rating_flag"] = int(data.average_rating < 3)
     df["discount_used_flag"] = 1
-
     df["discount_applied"] = 1
 
-    # categorical defaults (must match training)
+    # categorical defaults
     df["gender"] = "Male"
     df["city"] = "Unknown"
     df["membership_type"] = "Gold"
@@ -78,11 +88,16 @@ def predict_churn(data: CustomerInput):
     df = df[expected_cols]
 
     # =========================
-    # PREDICTION
+    # PREDICTION (SAFE)
     # =========================
     try:
         prediction = model.predict(df)[0]
-        probability = model.predict_proba(df)[0][1]
+
+        # safe probability handling
+        if hasattr(model, "predict_proba"):
+            probability = model.predict_proba(df)[0][1]
+        else:
+            probability = 0.5
 
         return {
             "churn_prediction": "Yes" if prediction == 1 else "No",
@@ -97,5 +112,5 @@ def predict_churn(data: CustomerInput):
     except Exception as e:
         return {
             "error": str(e),
-            "message": "Model prediction failed. Check feature mismatch or model file."
+            "message": "Prediction failed due to model/feature mismatch"
         }
