@@ -7,20 +7,18 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/predict", tags=["Prediction"])
 
 # =========================
-# SAFE MODEL LOADING (RENDER READY)
+# SAFE MODEL LOADING (Render-ready)
 # =========================
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "models", "churn_model.pkl")
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+MODEL_PATH = os.path.join(PROJECT_ROOT, "models", "churn_model.pkl")
 
 model = None
 try:
-    if os.path.exists(MODEL_PATH):
-        model = joblib.load(MODEL_PATH)
-        print(f"✅ Model loaded successfully from {MODEL_PATH}")
-    else:
-        print(f"❌ Model file not found at {MODEL_PATH}")
+    model = joblib.load(MODEL_PATH)
+    print(f"✅ Model loaded successfully from {MODEL_PATH}")
 except Exception as e:
-    print("❌ Model loading failed:", str(e))
+    print(f"❌ Model loading failed from {MODEL_PATH}: {e}")
+
 
 # =========================
 # INPUT SCHEMA
@@ -31,6 +29,7 @@ class CustomerInput(BaseModel):
     items_purchased: int
     average_rating: float
 
+
 # =========================
 # PREDICTION ENDPOINT
 # =========================
@@ -39,15 +38,12 @@ def predict_churn(data: CustomerInput):
     if model is None:
         return {
             "error": "Model not loaded",
-            "message": f"Check model file path: {MODEL_PATH}"
+            "message": "Check model file path or deployment"
         }
 
-    # Convert input to DataFrame
     df = pd.DataFrame([data.dict()])
 
-    # =========================
-    # FEATURE ENGINEERING
-    # =========================
+    # Feature engineering
     items = max(data.items_purchased, 1)
     df["avg_spend_per_item"] = data.total_spend / items
     df["is_high_value_customer"] = int(data.total_spend > 10000)
@@ -55,15 +51,10 @@ def predict_churn(data: CustomerInput):
     df["low_rating_flag"] = int(data.average_rating < 3)
     df["discount_used_flag"] = 1
     df["discount_applied"] = 1
-
-    # categorical defaults (must match training)
     df["gender"] = "Male"
     df["city"] = "Unknown"
     df["membership_type"] = "Gold"
 
-    # =========================
-    # FINAL COLUMN ORDER
-    # =========================
     expected_cols = [
         "age",
         "total_spend",
@@ -81,15 +72,9 @@ def predict_churn(data: CustomerInput):
     ]
     df = df[expected_cols]
 
-    # =========================
-    # PREDICTION (SAFE)
-    # =========================
     try:
         prediction = model.predict(df)[0]
-
-        probability = 0.5
-        if hasattr(model, "predict_proba"):
-            probability = model.predict_proba(df)[0][1]
+        probability = model.predict_proba(df)[0][1] if hasattr(model, "predict_proba") else 0.5
 
         return {
             "churn_prediction": "Yes" if prediction == 1 else "No",
